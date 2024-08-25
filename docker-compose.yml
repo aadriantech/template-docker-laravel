@@ -1,0 +1,45 @@
+services:
+  php-fpm:
+    container_name: php-fpm
+    build:
+      context: .
+      dockerfile: docker/php83/Dockerfile
+    volumes:
+      - ./src:/var/www/html
+      - php-fpm-socket:/var/run/php-fpm
+    expose:
+      - 9000
+    environment:
+      - PODSLEEP=no
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "php-fpm", "--test"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  nginx:
+    container_name: nginx
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    ports:
+      - "80:80"
+    volumes:
+      - ./src/public:/var/www/html/public:ro
+      - php-fpm-socket:/var/run/php-fpm
+    depends_on:
+      - php-fpm
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  php-fpm-socket:
+
+networks:
+  backend:
+    driver: bridge
